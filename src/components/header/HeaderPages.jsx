@@ -37,7 +37,7 @@ const HeaderPages = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link onClick={closeMenu} className="text-gray-500 transition hover:text-gray-500/75" href="/Products">
+                  <Link onClick={closeMenu} className="text-gray-500 transition hover:text-gray-500/75" href="/products">
                     Products
                   </Link>
                 </li>
@@ -80,7 +80,6 @@ const HeaderPages = () => {
 
                 <div className="cart-icon" style={{ position: 'relative' }}>
                   <div onClick={togglecart} href="/cart"> <IoCartOutline style={{ fontSize: "30px", cursor: "pointer" }} /> </div>
-                  <span className="cart-badge"></span>
                 </div>
 
                 <div className={`cart-header-shopping ${cartOpen ? "shopping-back" : ""}`}>

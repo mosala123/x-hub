@@ -74,10 +74,10 @@ const AllArivalesComponents = async () => {
       </div>
 
       <div className="flex justify-center mt-10">
-        <Link href="/arrivals">
-          <button className="px-6 py-2 bg-gray-800 text-white rounded hover:bg-gray-700 transition">
+        <Link href="/arrivals"
+         className="px-6 py-2 bg-gray-800 text-white rounded hover:bg-gray-700 transition">
             View All Arrivals
-          </button>
+         
         </Link>
       </div>
 
