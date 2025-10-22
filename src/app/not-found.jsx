@@ -11,19 +11,19 @@ const NotFound = () => {
             Page Not Found
           </h2>
           <p className="text-gray-500 max-w-md mx-auto">
-            Sorry, we couldn't find the page you're looking for. 
+            Sorry, we couldn't find the page you're looking for.
             The page might have been moved or deleted.
           </p>
         </div>
-        
+
         <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
-          <Link 
+          <Link
             href="/"
             className="inline-block bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
           >
             Return Home
           </Link>
-          <button 
+          <button
             onClick={() => window.history.back()}
             className="inline-block border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors"
           >
