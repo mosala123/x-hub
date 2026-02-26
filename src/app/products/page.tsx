@@ -3,8 +3,11 @@
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { FaAngleRight } from "react-icons/fa6";
-import { IoFilterCircle } from "react-icons/io5";
-import { FaRegStar, FaStar } from "react-icons/fa6";
+import { IoFilterCircle, IoGrid, IoList } from "react-icons/io5";
+import { FaRegStar, FaStar, FaHeart, FaRegHeart } from "react-icons/fa";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import './Products.css';
+import { useShop } from '@/components/store/ShopContext';
 
 interface Product {
   id: number;
@@ -24,21 +27,29 @@ const ProductsPages = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [cardHeight, setCardHeight] = useState(460);
   
   // Filter states
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState(1000);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState('featured');
+  const [searchQuery, setSearchQuery] = useState('');
+  const { toggleWishlist, isInWishlist, addToCart } = useShop();
+
+  const itemsPerPage = 9;
 
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("https://dummyjson.com/products");
-        if (!res.ok) {
-          throw new Error("Failed to fetch data");
-        }
+        setLoading(true);
+        const res = await fetch("https://dummyjson.com/products?limit=100");
+        if (!res.ok) throw new Error("Failed to fetch data");
         const data = await res.json();
         setProducts(data.products);
         setFilteredProducts(data.products);
@@ -55,6 +66,14 @@ const ProductsPages = () => {
   // Apply filters
   useEffect(() => {
     let filtered = [...products];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(product =>
+        product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.brand.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
 
     // Category filter
     if (selectedCategories.length > 0) {
@@ -73,6 +92,13 @@ const ProductsPages = () => {
     // Price filter
     filtered = filtered.filter(product => product.price <= priceRange);
 
+    // Rating filter
+    if (selectedRating) {
+      filtered = filtered.filter(product => 
+        Math.floor(product.rating) >= selectedRating
+      );
+    }
+
     // Sort products
     switch (sortBy) {
       case 'price-low-high':
@@ -88,12 +114,13 @@ const ProductsPages = () => {
         filtered.sort((a, b) => b.id - a.id);
         break;
       default:
-        // featured - no sorting or default sorting
+        // featured - no sorting
         break;
     }
 
     setFilteredProducts(filtered);
-  }, [products, selectedCategories, selectedBrands, priceRange, sortBy]);
+    setCurrentPage(1);
+  }, [products, selectedCategories, selectedBrands, priceRange, selectedRating, sortBy, searchQuery]);
 
   // Handle category selection
   const handleCategoryToggle = (category: string) => {
@@ -118,296 +145,398 @@ const ProductsPages = () => {
     setSelectedCategories([]);
     setSelectedBrands([]);
     setPriceRange(1000);
+    setSelectedRating(null);
     setSortBy('featured');
+    setSearchQuery('');
   };
 
   // Get unique categories and brands
   const categories = Array.from(new Set(products.map(product => product.category)));
   const brands = Array.from(new Set(products.map(product => product.brand)));
 
-  // Render stars for rating
+  // Pagination
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Render stars
   const renderStars = (rating: number) => {
     const stars = [];
     const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-
+    
     for (let i = 1; i <= 5; i++) {
       if (i <= fullStars) {
-        stars.push(<FaStar key={i} className="text-yellow-400" />);
-      } else if (i === fullStars + 1 && hasHalfStar) {
-        stars.push(<FaStar key={i} className="text-yellow-400" />);
+        stars.push(<FaStar key={i} className="star-filled" />);
       } else {
-        stars.push(<FaRegStar key={i} className="text-yellow-400" />);
+        stars.push(<FaRegStar key={i} className="star-empty" />);
       }
     }
     return stars;
   };
 
+  // Calculate discounted price
+  const calculateDiscountedPrice = (price: number, discount: number) => {
+    return (price * (1 - discount / 100)).toFixed(2);
+  };
+
   if (loading) {
     return (
-      <div className="p-4 py-14 flex justify-center items-center min-h-screen">
-        <div className="text-lg">Loading products...</div>
+      <div className="products-page">
+        <div className="products-loading">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="loading-card">
+              <div className="loading-image"></div>
+              <div className="loading-content">
+                <div className="loading-line"></div>
+                <div className="loading-line short"></div>
+                <div className="loading-line"></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className='p-4 py-14'>
+    <div className="products-page">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 mb-6 mt-12">
-        <Link href="/" className="text-gray-600 hover:text-gray-900  ">Go to Home</Link>
-        <FaAngleRight className="text-gray-400" />
-        <p className="text-gray-900 font-medium">Products</p>
+      <div className="breadcrumb">
+        <Link href="/" className="breadcrumb-item">Home</Link>
+        <span className="breadcrumb-separator"><FaAngleRight /></span>
+        <span className="breadcrumb-item active">Products</span>
       </div>
 
-      {/* Main Content */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        
+      {/* Page Header */}
+      <div className="page-header">
+        <h1>All Products</h1>
+        <p>Discover our collection of high-quality products</p>
+      </div>
+
+      {/* Mobile Filter Toggle */}
+      <button 
+        className="mobile-filter-toggle"
+        onClick={() => setMobileFilterOpen(true)}
+      >
+        <IoFilterCircle /> Filter Products
+      </button>
+
+      {/* Mobile Filter Overlay */}
+      <div 
+        className={`mobile-filter-overlay ${mobileFilterOpen ? 'active' : ''}`}
+        onClick={() => setMobileFilterOpen(false)}
+      />
+
+      {/* Main Layout */}
+      <div className="products-layout">
         {/* Filter Sidebar */}
-        <div className="lg:w-1/4">
-          <div className='card border border-gray-300 rounded-lg p-4 bg-white sticky top-4'>
-            <div className="flex items-center justify-between mb-3">
-              <h1 className="text-lg font-semibold">Filters</h1>
-              <IoFilterCircle className="text-xl" />
-            </div>
-
-            {/* Categories Filter */}
-            <div className="mb-6">
-              <h2 className="font-semibold mb-3">Categories</h2>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {categories.map(category => (
-                  <div key={category} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={`cat-${category}`}
-                      checked={selectedCategories.includes(category)}
-                      onChange={() => handleCategoryToggle(category)}
-                      className="rounded border-gray-300"
-                    />
-                    <label 
-                      htmlFor={`cat-${category}`}
-                      className="text-sm cursor-pointer capitalize flex-1"
-                    >
-                      {category} 
-                      <span className="text-gray-500 ml-1">
-                        ({products.filter(p => p.category === category).length})
-                      </span>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <hr className="my-4" />
-
-            {/* Brands Filter */}
-            <div className="mb-6">
-              <h2 className="font-semibold mb-3">Brands</h2>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {brands.map(brand => (
-                  <div key={brand} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={`brand-${brand}`}
-                      checked={selectedBrands.includes(brand)}
-                      onChange={() => handleBrandToggle(brand)}
-                      className="rounded border-gray-300"
-                    />
-                    <label 
-                      htmlFor={`brand-${brand}`}
-                      className="text-sm cursor-pointer flex-1"
-                    >
-                      {brand}
-                      <span className="text-gray-500 ml-1">
-                        ({products.filter(p => p.brand === brand).length})
-                      </span>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <hr className="my-4" />
-
-            {/* Price Filter */}
-            <div className="mb-6">
-              <h2 className="font-semibold mb-3">Price - Up to ${priceRange}</h2>
-              <input 
-                type="range" 
-                min="0" 
-                max="2000" 
-                value={priceRange}
-                onChange={(e) => setPriceRange(Number(e.target.value))}
-                className='w-full mb-2'
-              />
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>$0</span>
-                <span>$2000</span>
-              </div>
-            </div>
-
-            <hr className="my-4" />
-            
-            <button 
-              onClick={resetFilters}
-              className='w-full bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition-colors'
-            >
-              Reset All Filters
+        <div className={`filter-sidebar ${mobileFilterOpen ? 'mobile-open' : ''}`}>
+          <div className="filter-header">
+            <h3><IoFilterCircle /> Filters</h3>
+            <button onClick={resetFilters} className="reset-filter-btn">
+              Reset All
             </button>
+          </div>
+
+          {/* Categories */}
+          <div className="filter-section">
+            <h4>Categories</h4>
+            <div className="filter-options">
+              {categories.map(category => (
+                <label key={category} className="filter-option">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(category)}
+                    onChange={() => handleCategoryToggle(category)}
+                  />
+                  <span className="capitalize">{category}</span>
+                  <span className="count">
+                    ({products.filter(p => p.category === category).length})
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Brands */}
+          <div className="filter-section">
+            <h4>Brands</h4>
+            <div className="filter-options">
+              {brands.map(brand => (
+                <label key={brand} className="filter-option">
+                  <input
+                    type="checkbox"
+                    checked={selectedBrands.includes(brand)}
+                    onChange={() => handleBrandToggle(brand)}
+                  />
+                  <span>{brand}</span>
+                  <span className="count">
+                    ({products.filter(p => p.brand === brand).length})
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Price Range */}
+          <div className="filter-section">
+            <h4>Price Range</h4>
+            <div className="price-range">
+              <div className="range-slider">
+                <input
+                  type="range"
+                  min="0"
+                  max="2000"
+                  value={priceRange}
+                  onChange={(e) => setPriceRange(Number(e.target.value))}
+                />
+              </div>
+              <div className="price-values">
+                <span>$0</span>
+                <span>${priceRange}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Rating */}
+          <div className="filter-section">
+            <h4>Minimum Rating</h4>
+            <div className="filter-options">
+              {[5, 4, 3, 2, 1].map(rating => (
+                <label key={rating} className="rating-option">
+                  <input
+                    type="radio"
+                    name="rating"
+                    checked={selectedRating === rating}
+                    onChange={() => setSelectedRating(rating)}
+                  />
+                  <div className="rating-stars">
+                    {[...Array(5)].map((_, i) => (
+                      i < rating ? <FaStar key={i} /> : <FaRegStar key={i} />
+                    ))}
+                  </div>
+                  <span className="rating-text">& Up</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Products Grid */}
-        <div className="lg:w-3/4">
-          {/* Header */}
-          <div className='p-3 flex flex-col sm:flex-row items-center justify-between gap-4 mb-6'>
-            <h1 className="text-2xl font-bold">
-              All Products
-              <span className="text-gray-600 text-lg font-normal ml-2">
-                ({filteredProducts.length} products)
-              </span>
-            </h1>
-            
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <p className="text-gray-600">Sort by</p>
-                <select 
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className='border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-black'
-                >
-                  <option value="featured">Featured</option>
-                  <option value="price-low-high">Price: Low to High</option>
-                  <option value="price-high-low">Price: High to Low</option>
-                  <option value="rating">Highest Rating</option>
-                  <option value="newest">Newest Arrivals</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
+        {/* Products Content */}
+        <div className="products-content">
           {/* Active Filters */}
-          {(selectedCategories.length > 0 || selectedBrands.length > 0 || priceRange < 1000) && (
-            <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold">Active filters:</span>
-                {selectedCategories.map(category => (
-                  <span 
-                    key={category} 
-                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm flex items-center gap-1"
-                  >
-                    {category}
-                    <button 
-                      onClick={() => handleCategoryToggle(category)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-                {selectedBrands.map(brand => (
-                  <span 
-                    key={brand} 
-                    className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm flex items-center gap-1"
-                  >
-                    {brand}
-                    <button 
-                      onClick={() => handleBrandToggle(brand)}
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-                {priceRange < 1000 && (
-                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm flex items-center gap-1">
-                    Under ${priceRange}
-                    <button 
-                      onClick={() => setPriceRange(1000)}
-                      className="text-purple-600 hover:text-purple-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-              </div>
+          {(selectedCategories.length > 0 || selectedBrands.length > 0 || priceRange < 1000 || selectedRating) && (
+            <div className="active-filters">
+              <span>Active filters:</span>
+              {selectedCategories.map(cat => (
+                <span key={cat} className="filter-tag">
+                  {cat}
+                  <button onClick={() => handleCategoryToggle(cat)}>×</button>
+                </span>
+              ))}
+              {selectedBrands.map(brand => (
+                <span key={brand} className="filter-tag">
+                  {brand}
+                  <button onClick={() => handleBrandToggle(brand)}>×</button>
+                </span>
+              ))}
+              {priceRange < 1000 && (
+                <span className="filter-tag">
+                  Under ${priceRange}
+                  <button onClick={() => setPriceRange(1000)}>×</button>
+                </span>
+              )}
+              {selectedRating && (
+                <span className="filter-tag">
+                  {selectedRating}+ Stars
+                  <button onClick={() => setSelectedRating(null)}>×</button>
+                </span>
+              )}
             </div>
           )}
 
-          {/* Products Grid */}
-          {filteredProducts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No products found matching your filters.</p>
-              <button 
-                onClick={resetFilters}
-                className="mt-4 bg-black text-white px-6 py-2 rounded hover:bg-gray-800 transition-colors"
+          {/* Toolbar */}
+          <div className="products-toolbar">
+            <div className="results-count">
+              Showing <strong>{paginatedProducts.length}</strong> of <strong>{filteredProducts.length}</strong> products
+            </div>
+            
+            <div className="sort-section">
+              <span className="sort-label">Sort by:</span>
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="sort-select"
               >
-                Reset Filters
+                <option value="featured">Featured</option>
+                <option value="price-low-high">Price: Low to High</option>
+                <option value="price-high-low">Price: High to Low</option>
+                <option value="rating">Highest Rated</option>
+                <option value="newest">Newest</option>
+              </select>
+
+              <div className="view-toggle">
+                <button 
+                  className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <IoGrid />
+                </button>
+                <button 
+                  className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setViewMode('list')}
+                >
+                  <IoList />
+                </button>
+              </div>
+            </div>
+
+            <div className="card-height-control">
+              <label htmlFor="products-card-height">Card height</label>
+              <input
+                id="products-card-height"
+                type="range"
+                min={360}
+                max={620}
+                value={cardHeight}
+                onChange={(e) => setCardHeight(Number(e.target.value))}
+              />
+              <span>{cardHeight}px</span>
+            </div>
+          </div>
+
+          {/* Products Grid */}
+          {paginatedProducts.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">🔍</div>
+              <h3>No products found</h3>
+              <p>Try adjusting your filters or search criteria</p>
+              <button onClick={resetFilters} className="reset-btn">
+                Clear Filters
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <Link href={`/arrivals/${product.id}`} 
-                  key={product.id} 
-                  className="group relative block overflow-hidden bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-                >
-                   
+            <div className={`products-grid ${viewMode}`} style={{ ['--product-card-height' as string]: `${cardHeight}px` }}>
+              {paginatedProducts.map((product) => (
+                <div key={product.id} className="product-item">
+                  <div className="product-image-wrapper">
+                    <Link href={`/arrivals/${product.id}`}>
+                      <img
+                        src={product.thumbnail}
+                        alt={product.title}
+                        className="product-image"
+                        loading="lazy"
+                      />
+                    </Link>
 
-                  {/* Discount Badge */}
-                  {product.discountPercentage > 0 && (
-                    <div className="absolute start-4 top-4 z-10 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
-                      {product.discountPercentage}% OFF
+                    {product.discountPercentage > 0 && (
+                      <span className="product-badge">
+                        -{product.discountPercentage}%
+                      </span>
+                    )}
+
+                    <button
+                      className={`product-wishlist ${isInWishlist(product.id) ? 'active' : ''}`}
+                      onClick={() => toggleWishlist(product)}
+                    >
+                      {isInWishlist(product.id) ? <FaHeart /> : <FaRegHeart />}
+                    </button>
+
+                    <div className="quick-view">
+                      <Link href={`/arrivals/${product.id}`} className="quick-view-btn">Quick View</Link>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Product Image */}
-                  <img
-                    src={product.thumbnail}
-                    alt={product.title}
-                    className="h-64 w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-
-                  <div className="p-4">
-                    {/* Brand */}
-                    <p className="text-sm text-gray-500 mb-1 line-clamp-1">  <span className="text-lg font-medium text-gray-900 mb-2   " >{product.brand}</span></p>
-                    
-                    {/* Product Title */}
-                    <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2 h-9">
-                      {product.title}
+                  <div className="product-info">
+                    <div className="product-brand">{product.brand}</div>
+                    <h3 className="product-title">
+                      <Link href={`/arrivals/${product.id}`}>{product.title}</Link>
                     </h3>
 
-                    {/* Rating */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center gap-1">
+                    <div className="product-rating">
+                      <div className="rating-stars">
                         {renderStars(product.rating)}
                       </div>
-                      <span className="text-sm text-gray-600">
-                        {product.rating} ({product.stock} in stock)
-                      </span>
+                      <span className="rating-count">({product.rating})</span>
                     </div>
 
-                    {/* Price */}
-                    <div className="flex items-center gap-2  ">
-                      <span className="text-xl font-semibold text-gray-900">
-                        ${product.price}
+                    <div className="product-prices">
+                      <span className="current-price">
+                        ${calculateDiscountedPrice(product.price, product.discountPercentage)}
                       </span>
                       {product.discountPercentage > 0 && (
                         <>
-                          <span className="text-gray-400 line-through text-sm">
-                            ${(product.price / (1 - product.discountPercentage / 100)).toFixed(2)}
-                          </span>
-                          <span className="text-green-600 text-sm font-semibold">
+                          <span className="original-price">${product.price}</span>
+                          <span className="discount-badge-small">
                             Save {product.discountPercentage}%
                           </span>
                         </>
                       )}
                     </div>
 
-                    
+                    <div className="stock-status">
+                      <span className={`stock-indicator ${
+                        product.stock > 10 ? 'in-stock' : 
+                        product.stock > 0 ? 'low-stock' : 'out-of-stock'
+                      }`}></span>
+                      <span>
+                        {product.stock > 10 ? 'In Stock' :
+                         product.stock > 0 ? `Only ${product.stock} left` : 'Out of Stock'}
+                      </span>
+                    </div>
+
+                    <button className="add-to-cart-btn" onClick={() => addToCart(product)}>
+                      Add to Cart
+                    </button>
                   </div>
-                </Link>
+                </div>
               ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                <FiChevronLeft />
+              </button>
+              
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                if (
+                  pageNum === 1 ||
+                  pageNum === totalPages ||
+                  (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
+                ) {
+                  return (
+                    <button
+                      key={pageNum}
+                      className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                }
+                if (pageNum === currentPage - 3 || pageNum === currentPage + 3) {
+                  return <span key={pageNum}>...</span>;
+                }
+                return null;
+              })}
+              
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <FiChevronRight />
+              </button>
             </div>
           )}
         </div>

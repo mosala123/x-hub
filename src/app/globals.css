@@ -24,3 +24,28 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.shop-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2100;
+  background: #0f172a;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 25px rgba(2, 6, 23, 0.3);
+  animation: shopToastIn 0.2s ease-out;
+}
+
+@keyframes shopToastIn {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -1,102 +1,227 @@
-
-import { AiOutlineStar } from "react-icons/ai";
-import Link from "next/link"
+'use client'
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { AiOutlineStar, AiFillStar } from "react-icons/ai";
+import { FiHeart } from "react-icons/fi";
+import { FaShoppingCart } from "react-icons/fa";
+import "./Arrivals.css";
+import { useShop } from "../store/ShopContext";
 
 interface Article {
-  id: number
-  title: string
-  description: string
-  price: number
-  discountPercentage: number
-  rating: number
-  stock: number
-  brand: string
-  category: string
-  thumbnail: string
-  images: string[]
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+  discountPercentage: number;
+  rating: number;
+  stock: number;
+  brand: string;
+  category: string;
+  thumbnail: string;
+  images: string[];
 }
 
-interface ApiResponse {
-  products: Article[]
-}
+const AllArivalesComponents = () => {
+  const [products, setProducts] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cardHeight, setCardHeight] = useState(460);
+  const { toggleWishlist, isInWishlist, addToCart } = useShop();
 
-const AllArivalesComponents = async () => {
-  let products: Article[] = []
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  try {
-    const res = await fetch('https://dummyjson.com/products?limit=8', { next: { revalidate: 60 } })
-    if (!res.ok) {
-      throw new Error('Failed to fetch data')
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('https://dummyjson.com/products?limit=8');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setProducts(data.products);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load products. Please try again.');
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const data: ApiResponse = await res.json()
-    products = data.products
-  } catch (err) {
-    // Log the error server-side so we can inspect build-time failures without crashing the build
-    // eslint-disable-next-line no-console
-    console.error('AllArivalesComponents fetch error:', err)
-    // Fallback: leave products empty so UI renders without crashing during prerender
-    products = []
+  const calculateDiscountedPrice = (price: number, discount: number) => {
+    return (price * (1 - discount / 100)).toFixed(2);
+  };
+
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    return [...Array(5)].map((_, index) => (
+      <span key={index}>
+        {index < fullStars ? (
+          <AiFillStar className="star-filled" />
+        ) : index === fullStars && hasHalfStar ? (
+          <AiFillStar className="star-half" />
+        ) : (
+          <AiOutlineStar className="star-empty" />
+        )}
+      </span>
+    ));
+  };
+
+  if (loading) {
+    return (
+      <div className="arrivals-section">
+        <div className="arrivals-container">
+          <div className="arrivals-title">
+            <h1>New <span>Arrivals</span></h1>
+            <div className="title-decoration">
+              <span className="line"></span>
+              <span className="dot"></span>
+              <span className="line"></span>
+            </div>
+          </div>
+          
+          <div className="skeleton-grid">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="skeleton-card">
+                <div className="skeleton-image"></div>
+                <div className="skeleton-content">
+                  <div className="skeleton-line"></div>
+                  <div className="skeleton-line short"></div>
+                  <div className="skeleton-line"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="arrivals-section">
+        <div className="arrivals-container">
+          <div className="empty-state">
+            <FaShoppingCart />
+            <h3>Oops! Something went wrong</h3>
+            <p>{error}</p>
+            <button onClick={fetchProducts} className="refresh-btn">
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className=" px-3   py-10 "  >
-      <h1 className="text-6xl font-bold text-center mb-8 mt-12" >New   Arrivals  </h1>
+    <div className="arrivals-section">
+      <div className="arrivals-container">
+        <div className="arrivals-title">
+          <h1>New <span>Arrivals</span></h1>
+          <div className="title-decoration">
+            <span className="line"></span>
+            <span className="dot"></span>
+            <span className="line"></span>
+          </div>
+        </div>
+        <div className="card-height-control">
+          <label htmlFor="home-card-height">Card height</label>
+          <input
+            id="home-card-height"
+            type="range"
+            min={380}
+            max={620}
+            value={cardHeight}
+            onChange={(e) => setCardHeight(Number(e.target.value))}
+          />
+          <span>{cardHeight}px</span>
+        </div>
 
-      <div className=" px-4 py-3" >
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8"  >
-          {products.length > 0 ? (
-            products.map((item: Article) => (
-              <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <Link href={`/arrivals/${item.id}`} className="group relative block overflow-hidden" style={{ border: "4px solid #f3f3f3", backgroundColor: "#f3f3f3" }}>
-                  <img style={{ objectFit: 'cover' }}
-                    src={item.thumbnail}
-                    alt={item.title}
-                    className="h-64 w-full object-cover transition duration-500    group-hover:scale-105"
+        <div className="products-grid" style={{ ['--card-min-height' as string]: `${cardHeight}px` }}>
+          {products.map((product) => (
+            <div key={product.id} className="product-card">
+              <div className="product-image-container">
+                <Link href={`/arrivals/${product.id}`}>
+                  <img
+                    src={product.thumbnail}
+                    alt={product.title}
+                    className="product-image"
+                    loading="lazy"
                   />
-
-                  <div className="p-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2 mt-2">{item.title}</h3>
-
-                    <div className="flex items-center gap-1 mb-2">
-                      <AiOutlineStar className="text-yellow-500" />
-                      <span className="text-sm text-gray-600">{item.rating}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-gray-900">${item.price}</span>
-                      {item.discountPercentage > 0 && (
-                        <span className="text-sm text-gray-500 line-through">
-                          ${(item.price / (1 - item.discountPercentage / 100)).toFixed(2)}
-                        </span>
-                      )}
-                      {item.discountPercentage > 0 && (
-                        <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded">
-                          {item.discountPercentage}% off
-                        </span>
-                      )}
-                    </div>
-
-                  </div>
                 </Link>
+
+                {product.discountPercentage > 0 && (
+                  <span className="discount-badge">
+                    -{product.discountPercentage}%
+                  </span>
+                )}
+
+                <button
+                  onClick={() => toggleWishlist(product)}
+                  className={`wishlist-btn ${isInWishlist(product.id) ? 'active' : ''}`}
+                  aria-label="Add to wishlist"
+                >
+                  <FiHeart />
+                </button>
+
+                <div className="product-overlay">
+                  <button className="quick-view-btn" onClick={() => addToCart(product)}>
+                    <FaShoppingCart /> Add to Cart
+                  </button>
+                </div>
               </div>
-            ))
-          ) : (
-            <div className="col-span-full text-center text-gray-500 py-16">No arrivals available right now.</div>
-          )}
+
+              <div className="product-info">
+                <Link href={`/arrivals/${product.id}`}>
+                  <h3 className="product-title">{product.title}</h3>
+                </Link>
+
+                <p className="product-brand">{product.brand}</p>
+
+                <div className="product-rating">
+                  <div className="stars">
+                    {renderStars(product.rating)}
+                  </div>
+                  <span className="rating-count">({product.rating})</span>
+                </div>
+
+                <div className="product-price">
+                  <span className="current-price">
+                    ${calculateDiscountedPrice(product.price, product.discountPercentage)}
+                  </span>
+                  {product.discountPercentage > 0 && (
+                    <>
+                      <span className="original-price">${product.price}</span>
+                      <span className="save-badge">
+                        Save ${(product.price * product.discountPercentage / 100).toFixed(2)}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <div className="stock-status">
+                  <span className={`stock-indicator ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}></span>
+                  <span>{product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="view-all-container">
+          <Link href="/arrivals" className="view-all-btn">
+            View All Arrivals
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M4.16666 10H15.8333M15.8333 10L10.8333 5M15.8333 10L10.8333 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </Link>
         </div>
       </div>
-
-      <div className="flex justify-center mt-10">
-        <Link href="/arrivals"
-          className="px-6 py-2 bg-gray-800 text-white rounded hover:bg-gray-700 transition">
-          View All Arrivals
-
-        </Link>
-      </div>
-
     </div>
-  )
-}
+  );
+};
 
-export default AllArivalesComponents
+export default AllArivalesComponents;

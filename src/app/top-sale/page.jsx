@@ -1,18 +1,15 @@
-import AllArivalesComponents from '@/components/arrivalscomponent/AllArivalesComponents'
-import Carousel from '@/components/customers/Carousel'
-import HeroSectionPage from '@/components/herosection/HeroSectionPage'
-import Styles from '@/components/stylescomponent/Styles'
-
+import CollectionPage from '@/components/shop/CollectionPage';
 
 const TopSelling = () => {
-    return (
-        <div>
-            <HeroSectionPage />
-            <AllArivalesComponents />
-            <Styles />
-            <Carousel />
-        </div>
-    )
-}
+  return (
+    <CollectionPage
+      title="Top Sale"
+      subtitle="Best discounts and most wanted products this week."
+      endpoint="https://dummyjson.com/products?limit=30"
+      emptyText="No sale products found right now."
+      highlight="sale"
+    />
+  );
+};
 
 export default TopSelling

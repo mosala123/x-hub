@@ -1,19 +1,15 @@
-
-import AllArivalesComponents from "@/components/arrivalscomponent/AllArivalesComponents";
-import Carousel from "@/components/customers/Carousel";
-import HeroSectionPage from "@/components/herosection/HeroSectionPage";
-import Styles from "@/components/stylescomponent/Styles";
-
+import CollectionPage from "@/components/shop/CollectionPage";
 
 const BrandsPage = () => {
-    return (
-        <div>
-            <HeroSectionPage />
-            <AllArivalesComponents />
-            <Styles />
-            <Carousel />
-        </div>
-    )
-}
+  return (
+    <CollectionPage
+      title="Brands"
+      subtitle="Shop trusted brands and compare their top items quickly."
+      endpoint="https://dummyjson.com/products?limit=24"
+      emptyText="No brand products found."
+      highlight="brand"
+    />
+  );
+};
 
 export default BrandsPage;

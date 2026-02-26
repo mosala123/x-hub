@@ -1,341 +1,274 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import "./HeaderStyle.css";
 import Image from "next/image";
 import Link from 'next/link';
 import { IoCartOutline } from "react-icons/io5";
-import { CiSearch } from "react-icons/ci";
-// import { useSelector } from 'react-redux';
+import { CiSearch, CiHeart } from "react-icons/ci";
+import { FiUser } from "react-icons/fi";
+import { HiOutlineMenu } from "react-icons/hi";
+import { IoClose } from "react-icons/io5";
+import { usePathname } from 'next/navigation';
+import { useShop } from '../store/ShopContext';
 
 const HeaderPages = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [cartOpen, setcartOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const pathname = usePathname();
+  const menuRef = useRef(null);
+  const cartRef = useRef(null);
+  const {
+    cartItems,
+    cartCount,
+    cartSubtotal,
+    wishlistCount,
+    removeFromCart,
+  } = useShop();
 
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
-  };
-  const togglecart = () => {
-    setcartOpen(!cartOpen);
-  };
+  // إغلاق القوائم عند النقر خارجها
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+      if (cartRef.current && !cartRef.current.contains(event.target)) {
+        setCartOpen(false);
+      }
+    };
 
-  const closeMenu = () => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // إغلاق القوائم عند تغيير الصفحة
+  useEffect(() => {
     setMenuOpen(false);
-  };
-  // const cart = useSelector((state: any) => state.cart || []);
-  return (
-    <header className="bg-white header" style={{ boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)" }}>
-      <div className="mx-auto flex h-16 max-w-screen-xl items-center gap-8 px-4 sm:px-6 lg:px-8 header-container headermo">
-        <Image src="/logo.svg" alt="Logo" width={100} height={100} />
+    setCartOpen(false);
+  }, [pathname]);
 
-        <div className="flex flex-1 items-center justify-end md:justify-between sm:justify-end">
-          <div className={`headerlink ${menuOpen ? "back" : ""}`}>
-            <nav aria-label="Global">
-              <ul className="flex items-center gap-6 text-sm">
-                <li>
-                  <Link onClick={closeMenu} className="text-gray-500 transition hover:text-gray-500/75" href="/">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link onClick={closeMenu} className="text-gray-500 transition hover:text-gray-500/75" href="/products">
-                    Products
-                  </Link>
-                </li>
-                <li>
-                  <Link onClick={closeMenu} className="text-gray-500 transition hover:text-gray-500/75" href="/top-sale">
-                    Top Sale
-                  </Link>
-                </li>
-                <li>
-                  <Link onClick={closeMenu} className="text-gray-500 transition hover:text-gray-500/75" href="/arrivals">
-                    New Arrivals
-                  </Link>
-                </li>
-                <li>
-                  <Link onClick={closeMenu} className="text-gray-500 transition hover:text-gray-500/75" href="/brands">
-                    Brands
-                  </Link>
-                </li>
-              </ul>
-            </nav>
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+  const toggleCart = () => setCartOpen(!cartOpen);
+  const toggleSearch = () => setSearchOpen(!searchOpen);
+  const closeMenu = () => setMenuOpen(false);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+    }
+  };
+
+  // روابط التنقل
+  const navLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/products', label: 'Products' },
+    { href: '/top-sale', label: 'Top Sale' },
+    { href: '/arrivals', label: 'New Arrivals' },
+    { href: '/brands', label: 'Brands' },
+  ];
+
+  return (
+    <header className="header  ">
+      <div className="mx-auto flex h-16 max-w-screen-xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+        {/* Logo */}
+        <Link href="/" className="flex-shrink-0">
+          <Image src="/logo.svg" alt="Logo" width={100} height={40} className="w-auto h-8 sm:h-10" />
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex flex-1 justify-center">
+          <ul className="flex items-center gap-6">
+            {navLinks.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className={`nav-link ${pathname === link.href ? 'active' : ''}`}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Search */}
+          <div className="hidden sm:block search-header">
+            <CiSearch className="text-gray-500" />
+            <form onSubmit={handleSearch}>
+              <input
+                type="text"
+                placeholder="Search for products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </form>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="search-header">
-                <CiSearch />
-                <input type="text" placeholder="Search for products..." />
-              </div>
+          {/* Mobile Search Toggle */}
+          <button
+            onClick={toggleSearch}
+            className="sm:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
+            aria-label="Search"
+          >
+            <CiSearch className="text-xl" />
+          </button>
 
+          {/* Wishlist */}
+          <Link href="/wishlist" className="hidden sm:block p-2 text-gray-600 hover:text-gray-900 transition-colors relative">
+            <CiHeart className="text-xl" />
+            {wishlistCount > 0 && <span className="cart-badge">{wishlistCount}</span>}
+          </Link>
 
+          {/* Account */}
+          {/* <Link href="/authontication" className="hidden sm:block p-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <FiUser className="text-xl" />
+          </Link> */}
 
-              {/* cart  */}
+          {/* Cart */}
+          <div className="cart-header" ref={cartRef}>
+            <button
+              onClick={toggleCart}
+              className="cart-icon p-2 text-gray-600 hover:text-gray-900 transition-colors relative"
+              aria-label="Cart"
+            >
+              <IoCartOutline className="text-2xl" />
+              {cartCount > 0 && (
+                <span className="cart-badge">{cartCount}</span>
+              )}
+            </button>
 
-              <div className='cart-header'>
-
-
-
-
-
-
-                <div className="cart-icon" style={{ position: 'relative' }}>
-                  <div onClick={togglecart} href="/cart"> <IoCartOutline style={{ fontSize: "30px", cursor: "pointer" }} /> </div>
-                </div>
-
-                <div className={`cart-header-shopping ${cartOpen ? "shopping-back" : ""}`}>
-                  <div
-                    className="  w-screen max-w-sm    bg-gray-100 px-4 py-8 sm:px-6 lg:px-8"
-                    aria-modal="true"
-                    role="dialog"
-                    tabIndex="-1"
-                  >
-                    <button className="absolute end-4 top-4 text-gray-600 transition hover:scale-110">
-                      <span className="sr-only">Close cart</span>
-
-                      <svg style={{ cursor: "pointer" }} onClick={togglecart}
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth="1.5"
-                        stroke="currentColor"
-                        className="size-5"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+            {/* Cart Dropdown */}
+            <div className={`cart-dropdown ${cartOpen ? 'open' : ''}`}>
+              <div className="cart-header-shopping">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Shopping Cart ({cartCount})</h3>
+                    <button onClick={toggleCart} className="text-gray-500 hover:text-gray-700">
+                      <IoClose className="text-xl" />
                     </button>
-
-                    <div className="mt-4 space-y-6">
-                      <ul className="space-y-4">
-                        <li className="flex items-center gap-4">
-                          <img
-                            src="https://images.unsplash.com/photo-1618354691373-d851c5c3a990?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=830&q=80"
-                            alt=""
-                            className="size-16 rounded-sm object-cover"
-                          />
-
-                          <div>
-                            <h3 className="text-sm text-gray-900">Basic Tee 6-Pack</h3>
-
-                            <dl className="mt-0.5 space-y-px text-[10px] text-gray-600">
-                              <div>
-                                <dt className="inline">Size:</dt>
-                                <dd className="inline">XXS</dd>
-                              </div>
-
-                              <div>
-                                <dt className="inline">Color:</dt>
-                                <dd className="inline">White</dd>
-                              </div>
-                            </dl>
-                          </div>
-
-                          <div className="flex flex-1 items-center justify-end gap-2">
-                            <form>
-                              <label htmlFor="Line1Qty" className="sr-only"> Quantity </label>
-
-                              <input
-                                type="number"
-                                min="1"
-                                value="1"
-                                id="Line1Qty"
-                                className="h-8 w-12 rounded-sm border-gray-200 bg-gray-50 p-0 text-center text-xs text-gray-600 [-moz-appearance:_textfield] focus:outline-hidden [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
-                              />
-                            </form>
-
-                            <button className="text-gray-600 transition hover:text-red-600">
-                              <span className="sr-only">Remove item</span>
-
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth="1.5"
-                                stroke="currentColor"
-                                className="size-4"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        </li>
-
-                        <li className="flex items-center gap-4">
-                          <img
-                            src="https://images.unsplash.com/photo-1618354691373-d851c5c3a990?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=830&q=80"
-                            alt=""
-                            className="size-16 rounded-sm object-cover"
-                          />
-
-                          <div>
-                            <h3 className="text-sm text-gray-900">Basic Tee 6-Pack</h3>
-
-                            <dl className="mt-0.5 space-y-px text-[10px] text-gray-600">
-                              <div>
-                                <dt className="inline">Size:</dt>
-                                <dd className="inline">XXS</dd>
-                              </div>
-
-                              <div>
-                                <dt className="inline">Color:</dt>
-                                <dd className="inline">White</dd>
-                              </div>
-                            </dl>
-                          </div>
-
-                          <div className="flex flex-1 items-center justify-end gap-2">
-                            <form>
-                              <label htmlFor="Line2Qty" className="sr-only"> Quantity </label>
-
-                              <input
-                                type="number"
-                                min="1"
-                                value="1"
-                                id="Line2Qty"
-                                className="h-8 w-12 rounded-sm border-gray-200 bg-gray-50 p-0 text-center text-xs text-gray-600 [-moz-appearance:_textfield] focus:outline-hidden [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
-                              />
-                            </form>
-
-                            <button className="text-gray-600 transition hover:text-red-600">
-                              <span className="sr-only">Remove item</span>
-
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth="1.5"
-                                stroke="currentColor"
-                                className="size-4"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        </li>
-
-                        <li className="flex items-center gap-4">
-                          <img
-                            src="https://images.unsplash.com/photo-1618354691373-d851c5c3a990?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=830&q=80"
-                            alt=""
-                            className="size-16 rounded-sm object-cover"
-                          />
-
-                          <div>
-                            <h3 className="text-sm text-gray-900">Basic Tee 6-Pack</h3>
-
-                            <dl className="mt-0.5 space-y-px text-[10px] text-gray-600">
-                              <div>
-                                <dt className="inline">Size:</dt>
-                                <dd className="inline">XXS</dd>
-                              </div>
-
-                              <div>
-                                <dt className="inline">Color:</dt>
-                                <dd className="inline">White</dd>
-                              </div>
-                            </dl>
-                          </div>
-
-                          <div className="flex flex-1 items-center justify-end gap-2">
-                            <form>
-                              <label htmlFor="Line3Qty" className="sr-only"> Quantity </label>
-
-                              <input
-                                type="number"
-                                min="1"
-                                value="1"
-                                id="Line3Qty"
-                                className="h-8 w-12 rounded-sm border-gray-200 bg-gray-50 p-0 text-center text-xs text-gray-600 [-moz-appearance:_textfield] focus:outline-hidden [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
-                              />
-                            </form>
-
-                            <button className="text-gray-600 transition hover:text-red-600">
-                              <span className="sr-only">Remove item</span>
-
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth="1.5"
-                                stroke="currentColor"
-                                className="size-4"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        </li>
-                      </ul>
-
-                      <div className="space-y-4 text-center">
-                        <a
-                          href="#"
-                          className="block rounded-sm border border-gray-600 px-5 py-3 text-sm text-gray-600 transition hover:ring-1 hover:ring-gray-400"
-                        >
-                          View my cart (2)
-                        </a>
-
-                        <a
-                          href="#"
-                          className="block rounded-sm bg-gray-700 px-5 py-3 text-sm text-gray-100 transition hover:bg-gray-600"
-                        >
-                          Checkout
-                        </a>
-
-                        <a
-                          href="#"
-                          className="inline-block text-sm text-gray-500 underline underline-offset-4 transition hover:text-gray-600"
-                        >
-                          Continue shopping
-                        </a>
-                      </div>
-                    </div>
                   </div>
 
+                  {cartItems.length === 0 ? (
+                    <div className="text-center py-8">
+                      <IoCartOutline className="text-5xl text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">Your cart is empty</p>
+                      <button
+                        onClick={toggleCart}
+                        className="mt-4 text-blue-600 hover:underline"
+                      >
+                        Continue Shopping
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <ul className="space-y-4 max-h-96 overflow-y-auto">
+                        {cartItems.map((item) => (
+                          <li key={item.id} className="flex items-center gap-4">
+                            <img
+                              src={item.thumbnail}
+                              alt={item.title}
+                              className="w-16 h-16 object-cover rounded"
+                            />
+                            <div className="flex-1">
+                              <h4 className="font-medium">{item.title}</h4>
+                              <p className="text-sm text-gray-500">
+                                ${item.price} x {item.quantity}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => removeFromCart(item.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <IoClose />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
 
+                      <div className="mt-6 space-y-3">
+                        <div className="flex items-center justify-between font-semibold">
+                          <span>Subtotal:</span>
+                          <span>${cartSubtotal.toFixed(2)}</span>
+                        </div>
+                        <Link
+                          href="/cart"
+                          className="block w-full bg-black text-white text-center py-3 rounded hover:bg-gray-800 transition-colors"
+                        >
+                          View Cart
+                        </Link>
+                        <Link
+                          href="/checkout"
+                          className="block w-full bg-blue-600 text-white text-center py-3 rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Checkout
+                        </Link>
+                      </div>
+                    </>
+                  )}
                 </div>
-
               </div>
-
-
-
-
-
-
-
-
             </div>
-
-            <button
-              className="menu-toggle block rounded-sm bg-gray-100 p-2.5 text-gray-600 transition hover:text-gray-600/75 lg:hidden"
-              onClick={toggleMenu}
-              aria-label="Toggle menu"
-              aria-expanded={menuOpen}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="size-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
           </div>
+
+          {/* Mobile Menu Toggle */}
+          <button
+            className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? <IoClose className="text-2xl" /> : <HiOutlineMenu className="text-2xl" />}
+          </button>
         </div>
+      </div>
+
+      {/* Mobile Search */}
+      {searchOpen && (
+        <div className="sm:hidden p-4 border-t">
+          <form onSubmit={handleSearch} className="search-header">
+            <CiSearch />
+            <input
+              type="text"
+              placeholder="Search for products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+          </form>
+        </div>
+      )}
+
+      {/* Mobile Navigation */}
+      <div ref={menuRef} className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
+        <nav className="p-6">
+          <ul className="space-y-4">
+            {navLinks.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  onClick={closeMenu}
+                  className={`block py-2 text-lg ${pathname === link.href ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+            <li className="pt-4 border-t">
+              <Link href="/wishlist" onClick={closeMenu} className="flex items-center justify-between gap-2 py-2 text-gray-700">
+                <span className="flex items-center gap-2"><CiHeart /> Wishlist</span>
+                {wishlistCount > 0 && <span className="cart-badge">{wishlistCount}</span>}
+              </Link>
+            </li>
+            <li>
+              <Link href="/account" onClick={closeMenu} className="flex items-center gap-2 py-2 text-gray-700">
+                <FiUser /> Account
+              </Link>
+            </li>
+          </ul>
+        </nav>
       </div>
     </header>
   );

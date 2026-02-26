@@ -1,69 +1,142 @@
-
-
+'use client'
 import Link from "next/link"
+import { useState, useEffect } from "react";
+import "./HeroSection.css"; // استيراد ملف CSS
 
 const HeroSectionPage = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  const slides = [
+    {
+      title: "FIND CLOTHES THAT MATCHES YOUR STYLE",
+      description: "Browse through our diverse range of meticulously crafted garments, designed to bring out your individuality and cater to your sense of style.",
+      image: "/download-removebg-preview (7).png",
+    },
+    {
+      title: "SUMMER COLLECTION 2024",
+      description: "Discover the latest trends and styles for the upcoming season. Fresh looks for every occasion.",
+      image: "/hero-image-2.png",
+    },
+    {
+      title: "EXCLUSIVE DISCOUNTS",
+      description: "Get up to 50% off on selected items. Limited time offer. Shop now and save big!",
+      image: "/hero-image-3.png",
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const stats = [
+    { number: "200+", label: "International Brands" },
+    { number: "2,000+", label: "High-Quality Products" },
+    { number: "30,000+", label: "Happy Customers" },
+  ];
+
+  const brands = ["VERSACE", "ZARA", "GUCCI", "PRADA", "CALVIN KLEIN"];
+
   return (
-    <div >
-      <section className="min-h-screen   py-16 sm:py-24 lg:py-32  " style={{}}>
-        <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
-          <div className="md:grid md:grid-cols-2 md:items-center md:gap-12 lg:gap-16">
-            <div className="max-w-prose text-left">
-              <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl pt-9">
-                FIND CLOTHES THAT MATCHES YOUR STYLE
-                <strong className="text-indigo-600"></strong>
-              </h1>
-
-              <p className="mt-4 text-base text-gray-700 sm:text-lg">
-                Browse through our diverse range of meticulously crafted garments, designed to bring out your individuality and cater to your sense of style.
-              </p>
-              <div className="mt-8 flex items-center gap-4">
+    <div className="hero-wrapper ">
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-container">
+          <div className="hero-grid">
+            {/* Left Content */}
+            <div className="hero-content">
+              <div className="hero-slide">
+                <h1 className="hero-title mt-5 pt-5">
+                  {slides[currentSlide].title.split(' ').map((word, i) => 
+                    word === 'STYLE' || word === 'COLLECTION' || word === 'DISCOUNTS' ? (
+                      <span key={i} className="highlight">{word} </span>
+                    ) : (
+                      word + ' '
+                    )
+                  )}
+                </h1>
                 
-                <Link href="/arrivals"  className="inline-block rounded-lg border border-[#000]  bg-[#000] px-6 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-[#fff] hover:text-[#000] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                  > Shop Now
-                </Link>
-              </div>
+                <p className="hero-description">
+                  {slides[currentSlide].description}
+                </p>
 
-              <div className="mt-10 flex   gap-6   sm:gap-10 " style={{ justifyContent: "flex-start", display: "flex", alignItems: "center" }}>
-
-                <div className="flex flex-col items-start" style={{ justifyContent: "center", alignItems: "center" }}>
-                  <h2 className="text-3xl font-bold text-gray-900">200+</h2>
-                  <p className="text-sm text-gray-600">International Brands</p>
+                <div className="hero-buttons">
+                  <Link href="/arrivals" className="btn-shop">
+                    Shop Now
+                    <svg className="btn-icon" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </Link>
+                  
+                  <Link href="/products" className="btn-browse">
+                    Browse Collection
+                  </Link>
                 </div>
 
-                <div className="flex flex-col items-start" style={{ justifyContent: "center", alignItems: "center" }}>
-                  <h2 className="text-3xl font-bold text-gray-900">2,000+</h2>
-                  <p className="text-sm text-gray-600">High-Quality Products</p>
-                </div>
-
-                <div className="flex flex-col items-start" style={{ justifyContent: "center", alignItems: "center" }}>
-                  <h2 className="text-3xl font-bold text-gray-900">30,000+</h2>
-                  <p className="text-sm text-gray-600">Happy Customers</p>
+                {/* Stats */}
+                <div className="stats-container">
+                  {stats.map((stat, index) => (
+                    <div key={index} className="stat-item">
+                      <h2>{stat.number}</h2>
+                      <p>{stat.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
 
-            <div className="mt-12 md:mt-0 flex justify-center items-center">
-              <img
-                className="w-full max-w-lg  "
-                src="/download-removebg-preview (7).png"
-                alt="Fashion Model"
-              />
+            {/* Right Image */}
+            <div className="hero-image-wrapper">
+              <div className="hero-image-container">
+                <img
+                  src={slides[currentSlide].image}
+                  alt="Fashion Model"
+                  className="hero-image"
+                />
+                
+                {/* Floating Elements */}
+                <div className="floating-badge badge-1">
+                  <span className="badge-icon">✨</span>
+                  <div className="badge-text">
+                    <strong>New Arrivals</strong>
+                    <small>500+ Products</small>
+                  </div>
+                </div>
+                
+                <div className="floating-badge badge-2">
+                  <span className="badge-icon">🔥</span>
+                  <div className="badge-text">
+                    <strong>Hot Sale</strong>
+                    <small>Up to 70% off</small>
+                  </div>
+                </div>
 
+                {/* Slide Indicators */}
+                <div className="slide-indicators">
+                  {slides.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`indicator ${index === currentSlide ? 'active' : ''}`}
+                      onClick={() => setCurrentSlide(index)}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-
           </div>
         </div>
-
       </section>
-      <div className='py-2  gap-2     ' style={{ backgroundColor: "#000", flexWrap: "nowrap", overflowX: "auto", display: "flex ", justifyContent: "space-around" }}>
-        <h1 className="fs-7 text-nowrap mb-0 py-5" style={{ color: "white", fontSize: "clamp(14px, 2vw, 18px)" }}>ZARA</h1>
-        <h1 className="fs-7 text-nowrap mb-0 py-5" style={{ color: "white", fontSize: "clamp(14px, 2vw, 18px)" }}>GUCCI</h1>
-        <h1 className="fs-7 text-nowrap mb-0 py-5" style={{ color: "white", fontSize: "clamp(14px, 2vw, 18px)" }}>PRADA</h1>
-        <h1 className="fs-7 text-nowrap mb-0 py-5" style={{ color: "white", fontSize: "clamp(14px, 2vw, 18px)" }}> VERSACE</h1>
-        <h1 className="fs-7 text-nowrap mb-0 py-5" style={{ color: "white", fontSize: "clamp(14px, 2vw, 18px)" }}> CALVIN KLEIN</h1>
-      </div>
 
+      {/* Brands Bar */}
+      <div className="brands-bar">
+        <div className="brands-track">
+          {[...brands, ...brands].map((brand, index) => (
+            <span key={index} className="brand-item">{brand}</span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
