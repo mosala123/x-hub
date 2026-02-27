@@ -11,6 +11,7 @@ const Carousel = () => {
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [itemsPerView, setItemsPerView] = useState(1);
   const carouselRef = useRef(null);
 
   const testimonials = [
@@ -76,8 +77,27 @@ const Carousel = () => {
     }
   ];
 
-  const itemsPerView = window.innerWidth >= 992 ? 3 : window.innerWidth >= 768 ? 2 : 1;
   const maxIndex = Math.max(0, testimonials.length - itemsPerView);
+
+  useEffect(() => {
+    const updateItemsPerView = () => {
+      if (window.innerWidth >= 992) {
+        setItemsPerView(3);
+      } else if (window.innerWidth >= 768) {
+        setItemsPerView(2);
+      } else {
+        setItemsPerView(1);
+      }
+    };
+
+    updateItemsPerView();
+    window.addEventListener('resize', updateItemsPerView);
+    return () => window.removeEventListener('resize', updateItemsPerView);
+  }, []);
+
+  useEffect(() => {
+    setCurrentIndex((prev) => Math.min(prev, maxIndex));
+  }, [maxIndex]);
 
   // Auto play
   useEffect(() => {
